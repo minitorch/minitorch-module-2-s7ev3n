@@ -31,6 +31,7 @@ class TensorOps:
 
     @staticmethod
     def cmap(fn: Callable[[float], float]) -> Callable[[Tensor, Tensor], Tensor]:
+        # cmap是continous map的缩写，假设对连续内存的张量进行map操作，则可以更高效地实现
         pass
 
     @staticmethod
