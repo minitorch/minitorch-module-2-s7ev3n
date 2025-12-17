@@ -261,9 +261,11 @@ def tensor_map(fn: Callable[[float], float]) -> Any:
     """
 
     def _map(
-        out: Storage,
+        # out是输出张量的存储，因为可能存在broadcast，所以是更大的张量
+        out: Storage, # 我觉得名字是out_storage会更一致一些
         out_shape: Shape,
         out_strides: Strides,
+        # in是输入张量的存储，所以是更小的张量
         in_storage: Storage,
         in_shape: Shape,
         in_strides: Strides,
@@ -272,6 +274,7 @@ def tensor_map(fn: Callable[[float], float]) -> Any:
         out_index = np.zeros(len(out_shape), dtype=np.int32)
         in_index = np.zeros(len(in_shape), dtype=np.int32)
         for i in range(len(out)):
+            # 从out的线性位置i，转换为in的线性位置in_pos，并应用fn函数
             to_index(i, out_shape, out_index)
             broadcast_index(out_index, out_shape, in_shape, in_index)
             in_pos = index_to_position(in_index, in_strides)
@@ -325,7 +328,16 @@ def tensor_zip(fn: Callable[[float, float], float]) -> Any:
         b_strides: Strides,
     ) -> None:
         # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        a_index = np.zeros(len(a_shape), dtype=np.int32)
+        b_index = np.zeros(len(b_shape), dtype=np.int32)
+        for i in range(len(out)):
+            to_index(i, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            a_pos = index_to_position(a_index, a_strides)
+            b_pos = index_to_position(b_index, b_strides)
+            out[i] = fn(a_storage[a_pos], b_storage[b_pos])
 
     return _zip
 
@@ -361,7 +373,15 @@ def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
         reduce_dim: int,
     ) -> None:
         # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        a_index = np.zeros(len(a_shape), dtype=np.int32)
+
+        for i in range(len(a_storage)):
+            to_index(i, a_shape, a_index)
+            out_index[:] = a_index
+            out_index[reduce_dim] = 0
+            out_pos = index_to_position(out_index, out_strides)
+            out[out_pos] = fn(out[out_pos], a_storage[i])
 
     return _reduce
 
