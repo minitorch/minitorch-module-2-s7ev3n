@@ -44,7 +44,10 @@ def index_to_position(index: Index, strides: Strides) -> int:
     """
 
     # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
+    pos = 0
+    for i, stride in zip(index, strides):
+        pos += i * stride
+    return int(pos)
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
@@ -59,11 +62,20 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
         shape : tensor shape.
         out_index : return index corresponding to position.
 
+    stride和shape的关系，举个例子：
+    - 假如shape是(3,4)，那么stride就是(4, 1)
+    - 假如shape是(2,3,4)，那么stride就是(12, 4, 1)
+    可以看到，stride的最后一个维度总是1，每一维都是后面所有维度的乘积，
+    即stride就是某个dim移动一格需要跳过多少个元素
+    以上是shape如何转换成stride
+
     """
     # TODO: Implement for Task 2.1.
-    raise NotImplementedError("Need to implement for Task 2.1")
-
-
+    cur_ordinal = ordinal
+    for i in range(len(shape) - 1, -1, -1):
+        out_index[i] = cur_ordinal % cur_ordinal
+        cur_ordinal = cur_ordinal // shape[i]
+    
 def broadcast_index(
     big_index: Index, big_shape: Shape, shape: Shape, out_index: OutIndex
 ) -> None:
@@ -84,7 +96,12 @@ def broadcast_index(
         None
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    dim_offset = len(big_shape) - len(shape)
+    for i in range(len(shape)):
+        if shape[i] == 1:
+            out_index[i] = 0
+        else:
+            out_index[i] = big_index[i + dim_offset]
 
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
@@ -102,7 +119,16 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
         IndexingError : if cannot broadcast
     """
     # TODO: Implement for Task 2.2.
-    raise NotImplementedError("Need to implement for Task 2.2")
+    len1, len2 = len(shape1), len(shape2)
+    out_shape = []
+    for i in range(max(len1, len2)):
+        dim1 = shape1[len1 - 1 - i] if i < len1 else 1
+        dim2 = shape2[len2 - 1 - i] if i < len2 else 1
+        if dim1 == dim2 or dim1 == 1 or dim2 == 1:
+            out_shape.append(max(dim1, dim2))
+        else:
+            raise IndexingError(f"Cannot broadcast shapes {shape1} and {shape2}")
+    return tuple(reversed(out_shape))
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
@@ -223,7 +249,9 @@ class TensorData:
         ), f"Must give a position to each dimension. Shape: {self.shape} Order: {order}"
 
         # TODO: Implement for Task 2.1.
-        raise NotImplementedError("Need to implement for Task 2.1")
+        new_shape = tuple(self.shape[i] for i in order)
+        new_strides = tuple(self._strides[i] for i in order)
+        return TensorData(self._storage, new_shape, new_strides)
 
     def to_string(self) -> str:
         s = ""
